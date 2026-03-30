@@ -9,13 +9,18 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    //
     public function index()
     {
+        // 今日の日付と現在日時を取得
+        // → 日次判定や月次集計の基準として使う
         $today = today();
         $now = Carbon::now();
 
-        // ✅ 習慣一覧（今日完了済みフラグ + 直近ログを一括取得）
+        // 習慣一覧を新しい順で取得
+        // withExists:
+        //   今日のログが存在するかを is_done_today として各Habitに付与する
+        // with:
+        //   ストリーク計算用に直近60日分のログをまとめて取得し、N+1を防ぐ
         $habits = Habit::orderByDesc('created_at')
             ->withExists(['logs as is_done_today' => function ($q) use ($today) {
                 $q->whereDate('date', $today);
@@ -27,29 +32,35 @@ class DashboardController extends Controller
             }])
             ->get();
 
-        // ✅ 習慣ごとのストリーク（今日やってなければ0）
+        // 各習慣ごとに「連続達成日数」と「習慣ごとの簡易称号」を付与
+        // → DBに保存せず、画面表示専用のプロパティとして追加している
         $habits = $habits->map(function ($habit) use ($today) {
 
-            // logsの日付を YYYY-MM-DD に統一して重複排除
+            // ログの日付を YYYY-MM-DD に正規化して重複を除く
+            // → datetime型でも「日単位」で連続判定できるようにする
             $dates = $habit->logs
                 ->map(fn($log) => Carbon::parse($log->date)->toDateString())
                 ->unique()
                 ->values()
                 ->toArray();
 
+            // 高速に日付存在判定できるよう配列をセット化
             $set = array_flip($dates);
 
             $streak = 0;
             $cursor = $today->toDateString();
 
+            // 今日からさかのぼって、連続してログが存在する間だけカウント
+            // → 今日未達成なら streak は 0 になる
             while (isset($set[$cursor])) {
                 $streak++;
                 $cursor = Carbon::parse($cursor)->subDay()->toDateString();
             }
 
-            // Bladeから呼べるようにプロパティ追加（DB保存はしない）
+            // Bladeでそのまま表示できるよう、動的プロパティとして追加
             $habit->streak_today = $streak;
 
+            // 習慣単位の継続日数に応じた簡易称号を付与
             $habit->habit_title = match (true) {
                 $streak >= 30 => '🏆 マスター',
                 $streak >= 14 => '🔥 継続上級者',
@@ -62,34 +73,54 @@ class DashboardController extends Controller
             return $habit;
         });
 
+        // 今日未達成の習慣と、今日達成済みの習慣に分ける
+        // → ダッシュボード上で「今日やること」と「完了済み」を分離表示するため
         $pendingHabits = $habits->filter(fn($h) => !$h->is_done_today);
         $doneHabits = $habits->filter(fn($h) => $h->is_done_today);
 
-        // ✅ 今日の完了件数（今日のログ件数）
+        // 今日の対象習慣数 / 完了数 / 達成率を算出
+        $todayTotalCount = $habits->count();
+        $todayDoneCount = $doneHabits->count();
+        $todayAchievementRate = $todayTotalCount > 0 ? round(($todayDoneCount / $todayTotalCount) * 100) : 0;
+
+        // 今日の完了件数を取得
+        // → HabitLog件数ベースで、XP計算や表示に利用
         $todayCompletedCount = HabitLog::whereDate('date', $today)->count();
 
-        // ✅ XP（v1: 集計で算出）
+        // 1件達成あたりのXP
+        // → マジックナンバー化を避けるため変数化している
         $xpPerDone = 10;
 
+        // 現在ログイン中のユーザーを取得
         $user = auth()->user();
 
+        // ユーザーの累計XPを取得
         $totalXp = (int) ($user->xp ?? 0);
 
-        // ✅ レベル計算：User::calcLevel に統一
+        // 累計XPから現在レベルを算出
+        // → レベル計算ロジックはUserモデル側に寄せて責務分離している
         $level = $user->calcLevel($totalXp);
 
-        // ✅ ゲージ計算：今のレベル帯の開始累計XP / 次レベル到達に必要な累計XP
-        $currentLevelTotalXp = $user->xpForLevel($level);  // Lv開始の累計XP
-        $nextLevelTotalXp = $user->xpForLevel($level + 1); // 次Lvの累計XP
+        // 現在レベル帯の開始XPと、次レベル到達に必要な累計XPを取得
+        // → レベルゲージ表示に必要
+        $currentLevelTotalXp = $user->xpForLevel($level);
+        $nextLevelTotalXp = $user->xpForLevel($level + 1);
 
-        $currentLevelXp = max(0, $totalXp - $currentLevelTotalXp);        // このレベル帯で貯めたXP
-        $nextLevelXp = max(1, $nextLevelTotalXp - $currentLevelTotalXp);  // このレベル帯で必要なXP（0除算防止）
+        // 現レベル帯の中でどれだけXPを貯めたか
+        $currentLevelXp = max(0, $totalXp - $currentLevelTotalXp);
+
+        // 次レベルまでに必要なXP量
+        // → 0除算防止のため最低1を保証
+        $nextLevelXp = max(1, $nextLevelTotalXp - $currentLevelTotalXp);
+
+        // ゲージ用の進捗率（最大100%）
         $xpProgressPercent = min(100, ($currentLevelXp / $nextLevelXp) * 100);
 
-        // 今日の獲得XP
+        // 今日獲得したXP
         $todayXp = $todayCompletedCount * $xpPerDone;
 
-        // 今月のXP（ログ件数ベース）
+        // 今月の完了件数を取得し、月間XPを算出
+        // → 月次の頑張りを見える化するため
         $monthlyDoneCount = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
@@ -97,19 +128,23 @@ class DashboardController extends Controller
 
         $monthlyXp = $monthlyDoneCount * $xpPerDone;
 
-        // ✅ 今月の完了日数（その日に1件でもログがあった日を数える）
+        // 今月の「達成した日数」を取得
+        // → 1日に複数件ログがあっても、その日は1日として数える
         $monthlyCompletedDays = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
-            ->select('date(date) as d') // 日付部分だけ
+            ->select('date(date) as d')
             ->distinct()
             ->count('d');
 
-        $daySoFar = now()->day; // 今月の経過日数
+        // 今月何日経過したか
+        $daySoFar = now()->day;
 
+        // 今月の達成率（日ベース）
         $monthlyRate = $daySoFar > 0 ? round(($monthlyCompletedDays / $daySoFar) * 100) : 0;
 
-        // ✅ 今月の達成日（YYYY-MM-DD の配列）
+        // 今月ログがあった日を YYYY-MM-DD の配列で取得
+        // → カレンダーやヒートマップ表示用
         $activeDays = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
@@ -118,13 +153,13 @@ class DashboardController extends Controller
             ->pluck('d')
             ->toArray();
 
-        $activeDaySet = array_flip($activeDays); // Bladeで高速判定用
+        // Bladeで高速に「その日がアクティブか」を判定できるようセット化
+        $activeDaySet = array_flip($activeDays);
 
-        // ✅ 全体ストリーク（あなたが入れたものはそのままでOK）
-        // ... $globalStreak 計算はここにそのまま残す
-
+        // 直近60日分の「ログがあった日」を取得
+        // → 全体ストリーク計算用
         $activeDates = HabitLog::query()
-            ->selectRaw("date(date) as d") // datetimeでも日付だけにする（SQLiteでもOK）
+            ->selectRaw("date(date) as d")
             ->whereDate('date', '>=', $today->copy()->subDays(60))
             ->distinct()
             ->pluck('d')
@@ -134,12 +169,14 @@ class DashboardController extends Controller
         $set = array_flip($activeDates);
 
         $cursor = $today->toDateString();
+
+        // 今日からさかのぼって、アプリ全体として何日連続で活動しているかを算出
         while (isset($set[$cursor])) {
             $globalStreak++;
             $cursor = Carbon::parse($cursor)->subDay()->toDateString();
         }
 
-        // ✅ 称号（全体ストリーク基準）
+        // 全体ストリークに応じた称号を決定
         $title = match (true) {
             $globalStreak >= 60 => '🏆 習慣レジェンド',
             $globalStreak >= 30 => '🌟 1ヶ月達成',
@@ -150,7 +187,8 @@ class DashboardController extends Controller
             default            => '🧘 休憩中',
         };
 
-        // ===== ストリーク途切れチェック =====
+        // ストリークが途切れたかどうかを判定
+        // 昨日にログがなく、かつ現在ストリークが0なら「途切れた」とみなす
         $yesterday = Carbon::yesterday()->toDateString();
 
         $didYesterday = \DB::table('habit_logs')
@@ -160,7 +198,8 @@ class DashboardController extends Controller
 
         $streakBroken = !$didYesterday && $globalStreak === 0;
 
-        // ===== 週間グラフ（直近7日）=====
+        // 直近7日間の週間グラフを作成
+        // → 日別の達成件数推移を表示するため
         $days = 7;
 
         $from = Carbon::today()->subDays($days - 1);
@@ -174,7 +213,7 @@ class DashboardController extends Controller
             ->pluck('c', 'd')
             ->toArray();
 
-        // 欠けている日を 0 で埋める（必須）
+        // グラフ表示用に、存在しない日も0件で埋めて7日分そろえる
         $weeklyLabels = [];
         $weeklyCounts = [];
 
@@ -184,6 +223,7 @@ class DashboardController extends Controller
             $weeklyCounts[] = (int) ($weeklyRows[$key] ?? 0);
         }
 
+        // ダッシュボード表示に必要な値をまとめて渡す
         return view('dashboard', compact(
             'pendingHabits',
             'doneHabits',
@@ -204,7 +244,10 @@ class DashboardController extends Controller
             'totalXp',
             'weeklyLabels',
             'weeklyCounts',
-            'monthlyXp'
+            'monthlyXp',
+            'todayTotalCount',
+            'todayDoneCount',
+            'todayAchievementRate'
         ));
     }
 }
