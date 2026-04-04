@@ -86,6 +86,7 @@ class HabitLogController extends Controller
                     'current_level_xp' => $currentLevelXp,
                     'next_level_xp' => $nextLevelXp,
                     'xp_progress_percent' => $xpProgressPercent,
+                    'streak_today' => 0,
                 ]);
             }
 
@@ -145,6 +146,7 @@ class HabitLogController extends Controller
                 'current_level_xp' => $currentLevelXp,
                 'next_level_xp' => $nextLevelXp,
                 'xp_progress_percent' => $xpProgressPercent,
+                'streak_today' => 1,
             ]);
         });
     }

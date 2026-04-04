@@ -80,6 +80,30 @@
                 </button>
             </form>
 
+            {{-- AIアドバイス取得フォーム --}}
+            <form action="{{ route('habits.advice', $habit) }}" method="POST" class="mt-3">
+                @csrf
+                <button type="submit" class="rounded-lg border-indigo-200 px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-50">
+                    AIアドバイスをもらう
+                </button>
+            </form>
+            {{-- 押した習慣のカードにだけAI結果を表示 --}}
+            @if (session('ai_habit_id') === $habit->id && session('ai_advice'))
+            <div class="mt-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+                <p class="text-sm font-semibold text-indigo-800">AIアドバイス</p>
+                <p class="mt-1 text-sm text-slate-700">
+                    {{ session('ai_advice') }}
+                </p>
+            </div>
+            @endif
+
+            {{-- AI取得失敗時のエラー表示 --}}
+            @if (session('ai_habit_id') === $habit->id && session('error'))
+            <div class="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {{ session('error') }}
+            </div>
+            @endif
+
             {{-- 削除フォーム --}}
             <form method="POST" action="{{ route('habits.destroy', $habit) }}"
                 onsubmit="return confirm('この習慣を削除しますか？');"

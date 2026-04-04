@@ -13,6 +13,7 @@ class Habit extends Model
     // 一括代入（create / update）を許可するカラム
     // セキュリティ上、意図しないカラム更新を防ぐため明示的に指定
     protected $fillable = [
+        'user_id',
         'name',
         'description',
         'status',

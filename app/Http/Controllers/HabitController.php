@@ -40,9 +40,16 @@ class HabitController extends Controller
             'status' => ['required', 'in:todo,doing,done'],
         ]);
 
+        Habit::create([
+            'user_id' => auth()->id(),
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'status' => $validated['status'],
+        ]);
+
         // バリデーション済みデータのみを保存
         // → マスアサインメント対策（fillable前提）
-        Habit::create($validated);
+        // Habit::create($validated);
 
         // 一覧画面へリダイレクトし、成功メッセージをフラッシュ
         return redirect()

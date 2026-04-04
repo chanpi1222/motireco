@@ -8,6 +8,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TitleController;
+use App\Http\Controllers\HabitAdviceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,6 +37,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reports/weekly', [ReportController::class, 'weekly'])->name('reports.weekly');
     Route::get('titles', [TitleController::class, 'index'])->name('titles.index');
+
+    Route::post('/habits/{habit}/advice', [HabitAdviceController::class, 'store'])->name('habits.advice');
 });
 
 
