@@ -15,6 +15,16 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::get('/debug-db', function () {
+    return response()->json([
+        'env_db_connection' => env('DB_CONNECTION'),
+        'config_default' => config('database.default'),
+        'env_db_url' => env('DB_URL'),
+        'env_database_url' => env('DATABASE_URL'),
+        'sqlite_database' => config('database.connections.sqlite.database'),
+        'pgsql_url' => config('database.connections.pgsql.url'),
+    ]);
+});
 
 
 Route::middleware('auth')->group(function () {
