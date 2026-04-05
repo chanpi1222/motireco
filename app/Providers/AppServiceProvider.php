@@ -20,13 +20,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('*', function ($view) {
-            // 未ログイン画面では称号計算をしない
             if (!Auth::check()) {
                 $view->with('title', '🧘 休憩中');
                 return;
             }
 
-            // テーブル未作成・接続未確立時も落とさない
             if (!Schema::hasTable('habit_logs')) {
                 $view->with('title', '🧘 休憩中');
                 return;
@@ -63,7 +61,6 @@ class AppServiceProvider extends ServiceProvider
 
                 $view->with('title', $title);
             } catch (Throwable $e) {
-                // ログイン画面などを巻き込んで落とさない
                 $view->with('title', '🧘 休憩中');
             }
         });
