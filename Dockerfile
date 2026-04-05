@@ -3,28 +3,16 @@ FROM php:8.2-cli
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    curl \
-    libpq-dev \
-    libzip-dev \
-    nodejs \
-    npm \
-    && docker-php-ext-install pdo pdo_pgsql zip \
-    && rm -rf /var/lib/apt/lists/*
+    git unzip curl libpq-dev libzip-dev nodejs npm \
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-COPY . /app
-
-# 以前のビルド成果物やViteの開発痕跡を消す
-RUN rm -rf public/build \
-    && rm -f public/hot \
-    && rm -f bootstrap/cache/*.php
+COPY . .
 
 RUN composer install --no-dev --optimize-autoloader
 RUN npm ci && npm run build
 
 EXPOSE 8080
 
-CMD sh -c "php artisan optimize:clear && php artisan serve --host=0.0.0.0 --port=8080"
+CMD sh -c "php artisan optimize:clear && php -S 0.0.0.0:8080 -t public"
