@@ -20,6 +20,7 @@ class ProfileController extends Controller
     {
         // ログイン中ユーザーを取得
         $user = $request->user();
+        $userId = $user->id;
 
         // 日次・月次集計の基準となる日付を取得
         $today = today();
@@ -35,6 +36,9 @@ class ProfileController extends Controller
         // → プロフィール画面でも当日の活動量を表示するため
         $todayCompletedCount = HabitLog::query()
             ->whereDate('date', $today)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->count();
 
         // 今日の獲得XPを算出
@@ -45,6 +49,9 @@ class ProfileController extends Controller
         $monthlyCompletedDays = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->selectRaw("date(date) as d")
             ->distinct()
             ->count('d');
@@ -57,6 +64,9 @@ class ProfileController extends Controller
         $monthlyDoneCount = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->count();
 
         $monthlyXp = $monthlyDoneCount * $xpPerDone;
@@ -84,6 +94,9 @@ class ProfileController extends Controller
         $activeDates = HabitLog::query()
             ->selectRaw("date(date) as d")
             ->whereDate('date', '>=', $today->copy()->subDays(60))
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->distinct()
             ->pluck('d')
             ->toArray();

@@ -11,7 +11,9 @@ class HabitController extends Controller
     {
         // 作成日時の新しい順で習慣一覧を取得
         // → 最新の習慣を上に表示することでUXを向上
-        $habits = Habit::orderByDesc('created_at')->get();
+        $habits = Habit::where('user_id', auth->id())
+            ->orderByDesc('created_at')
+            ->get();
 
         // 一覧画面へデータを渡す
         return view('habits.index', compact('habits'));
@@ -27,6 +29,8 @@ class HabitController extends Controller
     {
         // ルートモデルバインディングにより対象のHabitが自動取得される
         // → ID取得やfind処理をControllerで書かなくて済む
+        abort_unless($habit->user_id === auth()->id(), 403);
+
         return view('habits.show', compact('habit'));
     }
 
@@ -59,10 +63,12 @@ class HabitController extends Controller
 
     public function update(Request $request, Habit $habit)
     {
+        abort_unless($habit->user_id === auth()->id(), 403);
         // 部分更新を許可するため 'sometimes' を使用
         // → フィールドが送られてきた場合のみバリデーションする
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'status' => ['sometimes', 'required', 'in:todo,doing,done'],
         ]);
 
@@ -79,11 +85,14 @@ class HabitController extends Controller
     {
         // 編集対象の習慣をフォームに渡す
         // → 既存データを初期値として表示するため
+        abort_unless($habit->user_id === auth()->id(), 403);
+
         return view('habits.edit', compact('habit'));
     }
 
     public function destroy(Habit $habit)
     {
+        abort_unless($habit->user_id === auth()->id(), 403);
         // 対象の習慣を削除
         // → 関連するログの扱いはDB設計（外部キー制約など）に依存
         $habit->delete();

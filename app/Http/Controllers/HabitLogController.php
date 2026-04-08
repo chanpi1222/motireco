@@ -12,6 +12,7 @@ class HabitLogController extends Controller
 {
     public function toggle(Request $request, Habit $habit)
     {
+        abort_unless($habit->user_id === auth()->id(), 403);
         // 今日の日付を取得（タイムゾーンはアプリ設定に依存）
         // → 日単位での記録管理の基準となる
         $today = Carbon::today();
@@ -30,7 +31,12 @@ class HabitLogController extends Controller
                 ->first();
 
             // 今日の完了件数を取得（後で増減させるための基準値）
-            $todayCompletedCount = HabitLog::whereDate('date', $today)->count();
+            $todayCompletedCount = HabitLog::query()
+                ->whereDate('date', $today)
+                ->whereHas('habit', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->count();
 
             // ===============================
             // すでに記録がある場合（取り消し）

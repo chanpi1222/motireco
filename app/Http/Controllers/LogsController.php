@@ -83,6 +83,12 @@ class LogsController extends Controller
             ->limit(10)
             ->get();
 
+        // dd([
+        //     'auth_id' => auth()->id(),
+        //     'recent_log_habit_names' => $recentLogs->pluck('habit.name'),
+        //     'recent_log_habit_user_ids' => $recentLogs->pluck('habit.user_id'),
+        // ]);
+
         // ログ一覧画面へ必要なデータを渡す
         return view('logs.index', [
             'heatmapDays' => $heatmapDays,

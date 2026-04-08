@@ -12,6 +12,7 @@ class AnalyticsController extends Controller
 {
     public function index(): View
     {
+        $userId = auth()->id();
         // 集計対象の日数
         // → 直近7日間の分析を行う
         $days = 7;
@@ -24,6 +25,7 @@ class AnalyticsController extends Controller
         // 習慣ごとの週間達成回数を集計し、ランキング用データを取得
         // withCount を使うことで、各 Habit に weekly_done_count を付与している
         $weeklyRanking = Habit::query()
+            ->where('user_id', $userId)
             ->withCount(['logs as weekly_done_count' => function ($query) use ($from, $to) {
                 // 対象期間内のログだけをカウント
                 $query->whereBetween('date', [
@@ -43,6 +45,9 @@ class AnalyticsController extends Controller
         // → 週間グラフ表示に使う
         $weeklyRows = HabitLog::query()
             ->whereBetween('date', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->selectRaw("date(date) as d, count(*) as c")
             ->groupBy('d')
             ->orderBy('d')

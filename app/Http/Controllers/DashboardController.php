@@ -15,13 +15,12 @@ class DashboardController extends Controller
         // → 日次判定や月次集計の基準として使う
         $today = today();
         $now = Carbon::now();
+        $user = auth()->user();
+        $userId = $user->id;
 
         // 習慣一覧を新しい順で取得
-        // withExists:
-        //   今日のログが存在するかを is_done_today として各Habitに付与する
-        // with:
-        //   ストリーク計算用に直近60日分のログをまとめて取得し、N+1を防ぐ
-        $habits = Habit::orderByDesc('created_at')
+        $habits = Habit::where('user_id', $userId)
+            ->orderByDesc('created_at')
             ->withExists(['logs as is_done_today' => function ($q) use ($today) {
                 $q->whereDate('date', $today);
             }])
@@ -85,14 +84,16 @@ class DashboardController extends Controller
 
         // 今日の完了件数を取得
         // → HabitLog件数ベースで、XP計算や表示に利用
-        $todayCompletedCount = HabitLog::whereDate('date', $today)->count();
+        $todayCompletedCount = HabitLog::query()
+            ->whereDate('date', $today)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->count();
 
         // 1件達成あたりのXP
         // → マジックナンバー化を避けるため変数化している
         $xpPerDone = 10;
-
-        // 現在ログイン中のユーザーを取得
-        $user = auth()->user();
 
         // ユーザーの累計XPを取得
         $totalXp = (int) ($user->xp ?? 0);
@@ -124,6 +125,9 @@ class DashboardController extends Controller
         $monthlyDoneCount = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->count();
 
         $monthlyXp = $monthlyDoneCount * $xpPerDone;
@@ -133,7 +137,10 @@ class DashboardController extends Controller
         $monthlyCompletedDays = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
-            ->select('date(date) as d')
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->selectRaw('date(date) as d')
             ->distinct()
             ->count('d');
 
@@ -148,6 +155,9 @@ class DashboardController extends Controller
         $activeDays = HabitLog::query()
             ->whereYear('date', $now->year)
             ->whereMonth('date', $now->month)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->selectRaw("date(date) as d")
             ->distinct()
             ->pluck('d')
@@ -159,8 +169,11 @@ class DashboardController extends Controller
         // 直近60日分の「ログがあった日」を取得
         // → 全体ストリーク計算用
         $activeDates = HabitLog::query()
-            ->selectRaw("date(date) as d")
             ->whereDate('date', '>=', $today->copy()->subDays(60))
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->selectRaw("date(date) as d")
             ->distinct()
             ->pluck('d')
             ->toArray();
@@ -191,9 +204,11 @@ class DashboardController extends Controller
         // 昨日にログがなく、かつ現在ストリークが0なら「途切れた」とみなす
         $yesterday = Carbon::yesterday()->toDateString();
 
-        $didYesterday = \DB::table('habit_logs')
-            ->where('user_id', auth()->id())
-            ->whereDate('created_at', $yesterday)
+        $didYesterday = HabitLog::query()
+            ->whereDate('date', $yesterday)
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->exists();
 
         $streakBroken = !$didYesterday && $globalStreak === 0;
@@ -207,6 +222,9 @@ class DashboardController extends Controller
 
         $weeklyRows = HabitLog::query()
             ->whereBetween('date', [$from->startOfDay(), $to->endOfDay()])
+            ->whereHas('habit', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
             ->selectRaw("date(date) as d, count(*) as c")
             ->groupBy('d')
             ->orderBy('d')
