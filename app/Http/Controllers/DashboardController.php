@@ -135,14 +135,15 @@ class DashboardController extends Controller
         // 今月の「達成した日数」を取得
         // → 1日に複数件ログがあっても、その日は1日として数える
         $monthlyCompletedDays = HabitLog::query()
-            ->whereYear('date', $now->year)
-            ->whereMonth('date', $now->month)
             ->whereHas('habit', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             })
+            ->whereYear('date', $now->year)
+            ->whereMonth('date', $now->month)
             ->selectRaw('date(date) as d')
             ->distinct()
-            ->count('d');
+            ->get()
+            ->count();
 
         // 今月何日経過したか
         $daySoFar = now()->day;
