@@ -47,14 +47,15 @@ class ProfileController extends Controller
         // 今月の「達成した日数」を取得
         // → 1日に複数件記録しても、その日は1日として数える
         $monthlyCompletedDays = HabitLog::query()
-            ->whereYear('date', $now->year)
-            ->whereMonth('date', $now->month)
             ->whereHas('habit', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             })
+            ->whereYear('date', $now->year)
+            ->whereMonth('date', $now->month)
             ->selectRaw("date(date) as d")
             ->distinct()
-            ->count('d');
+            ->get()
+            ->count();
 
         // 今月の経過日数を取得し、達成率を算出
         $daySoFar = now()->day;
