@@ -11,7 +11,7 @@ class HabitController extends Controller
     {
         // 作成日時の新しい順で習慣一覧を取得
         // → 最新の習慣を上に表示することでUXを向上
-        $habits = Habit::where('user_id', auth->id())
+        $habits = Habit::where('user_id', auth()->id())
             ->orderByDesc('created_at')
             ->get();
 
