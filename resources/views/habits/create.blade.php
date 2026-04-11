@@ -65,14 +65,14 @@
             習慣の詳細(任意)
           </label>
 
+          {{-- バリデーションエラー時に入力内容を保持 --}}
           <textarea
             id="description"
             name="description"
             rows="3"
             placeholder="例:英語を10分学習する"
-            class="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-400 focus:ring-blue-200">
+            class="mt-2 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-blue-400 focus:ring-blue-200">{{ old('description') }}</textarea>
           {{ old('description') }}
-          {{-- バリデーションエラー時に入力内容を保持 --}}
           </textarea>
         </div>
 
