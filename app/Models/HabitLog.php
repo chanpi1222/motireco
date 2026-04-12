@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HabitLog extends Model
 {
@@ -35,7 +36,7 @@ class HabitLog extends Model
      * $log->habit で紐づく習慣を取得可能
      * Habit側の hasMany と対になる関係
      */
-    public function habit()
+    public function habit(): BelongsTo
     {
         return $this->belongsTo(Habit::class);
     }

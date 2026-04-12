@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Habit;
 use App\Models\HabitLog;
 use Carbon\Carbon;
+use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(): View
     {
         // 今日の日付と現在日時を取得
         // → 日次判定や月次集計の基準として使う
@@ -44,23 +44,23 @@ class DashboardController extends Controller
                 ->toArray();
 
             // 高速に日付存在判定できるよう配列をセット化
-            $set = array_flip($dates);
+            $habitLogDateSet = array_flip($dates);
 
             $streak = 0;
             $cursor = $today->toDateString();
 
             // 今日からさかのぼって、連続してログが存在する間だけカウント
             // → 今日未達成なら streak は 0 になる
-            while (isset($set[$cursor])) {
+            while (isset($habitLogDateSet[$cursor])) {
                 $streak++;
                 $cursor = Carbon::parse($cursor)->subDay()->toDateString();
             }
 
             // Bladeでそのまま表示できるよう、動的プロパティとして追加
-            $habit->streak_today = $streak;
+            $habit->streakToday = $streak;
 
             // 習慣単位の継続日数に応じた簡易称号を付与
-            $habit->habit_title = match (true) {
+            $habit->habitTitle = match (true) {
                 $streak >= 30 => '🏆 マスター',
                 $streak >= 14 => '🔥 継続上級者',
                 $streak >= 7  => '⭐ 1週間達成',
@@ -145,7 +145,7 @@ class DashboardController extends Controller
             ->get()
             ->count();
 
-        // 今月何日経過したか
+        // 今月何日経過しているか
         $daySoFar = now()->day;
 
         // 今月の達成率（日ベース）
@@ -180,18 +180,18 @@ class DashboardController extends Controller
             ->toArray();
 
         $globalStreak = 0;
-        $set = array_flip($activeDates);
+        $activeDateSet = array_flip($activeDates);
 
         $cursor = $today->toDateString();
 
         // 今日からさかのぼって、アプリ全体として何日連続で活動しているかを算出
-        while (isset($set[$cursor])) {
+        while (isset($activeDateSet[$cursor])) {
             $globalStreak++;
             $cursor = Carbon::parse($cursor)->subDay()->toDateString();
         }
 
         // 全体ストリークに応じた称号を決定
-        $title = match (true) {
+        $globalTitle = match (true) {
             $globalStreak >= 60 => '🏆 習慣レジェンド',
             $globalStreak >= 30 => '🌟 1ヶ月達成',
             $globalStreak >= 14 => '🔥 2週間マスター',
@@ -216,13 +216,13 @@ class DashboardController extends Controller
 
         // 直近7日間の週間グラフを作成
         // → 日別の達成件数推移を表示するため
-        $days = 7;
+        $weeklyRangeDays = 7;
 
-        $from = Carbon::today()->subDays($days - 1);
-        $to   = Carbon::today();
+        $chartStartDate = Carbon::today()->subDays($weeklyRangeDays - 1);
+        $chartEndDate   = Carbon::today();
 
         $weeklyRows = HabitLog::query()
-            ->whereBetween('date', [$from->startOfDay(), $to->endOfDay()])
+            ->whereBetween('date', [$chartStartDate->startOfDay(), $chartEndDate->endOfDay()])
             ->whereHas('habit', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
             })
@@ -236,9 +236,9 @@ class DashboardController extends Controller
         $weeklyLabels = [];
         $weeklyCounts = [];
 
-        for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
-            $key = $d->toDateString();
-            $weeklyLabels[] = $d->format('m/d');
+        for ($date = $chartStartDate->copy(); $date->lte($chartEndDate); $date->addDay()) {
+            $key = $date->toDateString();
+            $weeklyLabels[] = $date->format('m/d');
             $weeklyCounts[] = (int) ($weeklyRows[$key] ?? 0);
         }
 
@@ -249,14 +249,13 @@ class DashboardController extends Controller
             'todayCompletedCount',
             'monthlyCompletedDays',
             'globalStreak',
-            'title',
+            'globalTitle',
             'todayXp',
             'xpPerDone',
             'level',
             'currentLevelXp',
             'nextLevelXp',
             'xpProgressPercent',
-            'activeDates',
             'activeDaySet',
             'monthlyRate',
             'streakBroken',

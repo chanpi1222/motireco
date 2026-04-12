@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Habit;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class HabitController extends Controller
 {
-    public function index()
+    public function index(): View
     {
         // 作成日時の新しい順で習慣一覧を取得
         // → 最新の習慣を上に表示することでUXを向上
@@ -25,7 +27,7 @@ class HabitController extends Controller
         return view('habits.create');
     }
 
-    public function show(\App\Models\Habit $habit)
+    public function show(Habit $habit): View
     {
         // ルートモデルバインディングにより対象のHabitが自動取得される
         // → ID取得やfind処理をControllerで書かなくて済む
@@ -34,7 +36,7 @@ class HabitController extends Controller
         return view('habits.show', compact('habit'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         // 入力値のバリデーション
         // → 不正なデータの保存を防ぐ（必須・型・最大文字数・許可値）
@@ -51,17 +53,13 @@ class HabitController extends Controller
             'status' => $validated['status'],
         ]);
 
-        // バリデーション済みデータのみを保存
-        // → マスアサインメント対策（fillable前提）
-        // Habit::create($validated);
-
         // 一覧画面へリダイレクトし、成功メッセージをフラッシュ
         return redirect()
             ->route('habits.index')
             ->with('success', '習慣を追加しました!');
     }
 
-    public function update(Request $request, Habit $habit)
+    public function update(Request $request, Habit $habit): RedirectResponse
     {
         abort_unless($habit->user_id === auth()->id(), 403);
         // 部分更新を許可するため 'sometimes' を使用
@@ -81,7 +79,7 @@ class HabitController extends Controller
             ->with('success', '習慣を更新しました!');
     }
 
-    public function edit(Habit $habit)
+    public function edit(Habit $habit): View
     {
         // 編集対象の習慣をフォームに渡す
         // → 既存データを初期値として表示するため

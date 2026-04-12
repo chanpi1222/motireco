@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Habit extends Model
 {
@@ -47,8 +48,8 @@ class Habit extends Model
      * $habit->logs でログ一覧を取得可能
      * ->with('logs') によるEager LoadingでN+1問題を回避できる
      */
-    public function logs()
+    public function logs(): HasMany
     {
-        return $this->hasMany(\App\Models\HabitLog::class);
+        return $this->hasMany(HabitLog::class);
     }
 }

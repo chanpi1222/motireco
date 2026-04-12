@@ -7,10 +7,11 @@ use App\Models\HabitLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class HabitLogController extends Controller
 {
-    public function toggle(Request $request, Habit $habit)
+    public function toggle(Habit $habit): JsonResponse
     {
         abort_unless($habit->user_id === auth()->id(), 403);
         // 今日の日付を取得（タイムゾーンはアプリ設定に依存）
@@ -19,14 +20,14 @@ class HabitLogController extends Controller
 
         // 一連の処理（ログ操作 + XP更新）をトランザクションでまとめる
         // → 途中で失敗した場合にデータ不整合を防ぐ
-        return DB::transaction(function () use ($request, $habit, $today) {
+        return DB::transaction(function () use ($habit, $today) {
 
             // ログインユーザーを取得
             $user = auth()->user();
 
             // 指定習慣 × 今日の日付のログを取得
             // → datetime型でも日単位で判定できるよう whereDate を使用
-            $log = HabitLog::where('habit_id', $habit->id)
+            $existingLog = HabitLog::where('habit_id', $habit->id)
                 ->whereDate('date', $today)
                 ->first();
 
@@ -41,14 +42,14 @@ class HabitLogController extends Controller
             // ===============================
             // すでに記録がある場合（取り消し）
             // ===============================
-            if ($log) {
+            if ($existingLog) {
 
                 // 処理前のXPとレベルを保持（レベルダウン判定用）
                 $beforeXp = (int)($user->xp ?? 0);
                 $beforeLevel = $user->calcLevel($beforeXp);
 
                 // ログ削除（= 今日の達成を取り消し）
-                $log->delete();
+                $existingLog->delete();
 
                 // XPを減算（最低0で止めるガード付き）
                 $user->xp = max(0, $beforeXp - 10);
@@ -143,7 +144,7 @@ class HabitLogController extends Controller
             // フロントへ結果返却（UI更新用）
             return response()->json([
                 'done' => true, // 達成状態
-                'message' => '今日の記録を追加しました!',
+                'message' => '今日の記録を追加しました!。',
                 'xp_delta' => 10,
                 'level_up' => $levelUpPayload,
                 'today_completed_count' => $todayCompletedCount,

@@ -85,7 +85,7 @@
 
                         <p class="js-status text-blue-600 text-xs mt-2">● 未完了</p>
                         <p class="js-streak text-slate-500 text-xs mt-1">
-                            連続: {{ $habit->streak_today }} 日
+                            連続: {{ $habit->streakToday }} 日
                         </p>
                     </div>
 
@@ -133,7 +133,7 @@
                             ✓ 完了
                         </p>
                         <p class="js-streak text-slate-500 text-xs mt-1">
-                            連続: {{ $habit->streak_today }} 日
+                            連続: {{ $habit->streakToday }} 日
                         </p>
                     </div>
 

@@ -1,7 +1,7 @@
 <x-app-layout>
   <x-slot name="header">
     <div class="flex items-center justify-between gap-4">
-      <h2 class="font-semibold text-xl textt-slate-800 leading-tight">
+      <h2 class="font-semibold text-xl text-slate-800 leading-tight">
         称号一覧
       </h2>
 
@@ -31,7 +31,7 @@
 
         <div class="mt-6 space-y-3">
           @foreach ($titles as $title)
-          <div class="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 {{ $globalStreak >= $title['condition'] ? 'bg-green-50 border border-green-200' : 'border border-slate-200' }}">
+          <div class="flex items-center justify-between rounded-lg border-slate-200 px-4 py-3 {{ $globalStreak >= $title['condition'] ? 'bg-green-50 border-green-200' : 'border-slate-200' }}">
             <div>
               <p class="text-sm font-semibold text-slate-800">
                 {{ $title['name'] }}
