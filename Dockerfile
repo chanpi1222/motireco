@@ -30,8 +30,4 @@ RUN mkdir -p storage/framework/cache \
 
 EXPOSE 8080
 
-CMD sh -c "
-touch database/database.sqlite &&
-php artisan migrate --force &&
-php artisan serve --host=0.0.0.0 --port=$PORT
-"
+CMD ["sh", "-c", "touch database/database.sqlite && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"]
