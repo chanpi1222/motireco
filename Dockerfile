@@ -6,11 +6,11 @@ RUN apt-get update && apt-get install -y \
     git \
     unzip \
     curl \
-    libpq-dev \
+    libsqlite3-dev \
     libzip-dev \
     nodejs \
     npm \
-    && docker-php-ext-install pdo pdo_pgsql zip \
+    && docker-php-ext-install pdo pdo_sqlite zip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,4 +30,8 @@ RUN mkdir -p storage/framework/cache \
 
 EXPOSE 8080
 
-CMD sh -c "touch database/database.sqlite && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT"
+CMD sh -c "
+touch database/database.sqlite &&
+php artisan migrate --force &&
+php artisan serve --host=0.0.0.0 --port=$PORT
+"
