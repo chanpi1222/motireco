@@ -57,7 +57,7 @@
                 {{-- 現在の称号と称号一覧への導線 --}}
                 <div class="bg-white rounded-xl p-4 shadow sm:rounded-lg">
                     <p class="text-sm text-slate-500">称号</p>
-                    <p class="text-xl font-bold text-slate-800">{{ $globalTitle }}</p>
+                    <p class="text-xl font-bold text-slate-800">{{ $title }}</p>
 
                     {{-- 称号一覧ページへの遷移 --}}
                     <a href="{{ route('titles.index') }}" class="mt-3 inline-block text-sm text-blue-600 hover:underline">
