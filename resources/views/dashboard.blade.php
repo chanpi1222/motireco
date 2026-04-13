@@ -233,7 +233,7 @@
                     status.className = 'js-status text-blue-600 text-xs mt-2';
                 }
 
-                button.textContent = ' 今日は完了';
+                button.textContent = '今日は完了';
                 button.className = 'js-toggle inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700';
             }
 
@@ -302,9 +302,6 @@
             }
 
             updateEmptyStates();
-
-            // const data = await postToggle(url);
-            // moveCard(card, data.done);
         });
     </script>
 
