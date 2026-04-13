@@ -186,18 +186,35 @@
         function updateEmptyStates() {
             const pendingList = document.getElementById('pendingList');
             const doneList = document.getElementById('doneList');
-            const pendingEmpty = document.getElementById('pendingEmpty');
-            const doneEmpty = document.getElementById('doneEmpty');
 
             const pendingCards = pendingList?.querySelectorAll('[data-habit-card]').length ?? 0;
             const doneCards = doneList?.querySelectorAll('[data-habit-card]').length ?? 0;
 
-            if (pendingEmpty) {
-                pendingEmpty.classList.toggle('hidden', pendingCards > 0);
+            let pendingEmpty = document.getElementById('pendingEmpty');
+            let doneEmpty = document.getElementById('doneEmpty');
+
+            if (pendingCards === 0) {
+                if (!pendingEmpty && pendingList) {
+                    pendingEmpty = document.createElement('div');
+                    pendingEmpty.id = 'pendingEmpty';
+                    pendingEmpty.className = 'bg-white rounded-xl p-4 shadow';
+                    pendingEmpty.innerHTML = '<p class="text-slate-600 text-sm">今日の未達はありません 🎉</p>';
+                    pendingList.appendChild(pendingEmpty);
+                }
+            } else {
+                pendingEmpty?.remove();
             }
 
-            if (doneEmpty) {
-                doneEmpty.classList.toggle('hidden', doneCards > 0);
+            if (doneCards === 0) {
+                if (!doneEmpty && doneList) {
+                    doneEmpty = document.createElement('div');
+                    doneEmpty.id = 'doneEmpty';
+                    doneEmpty.className = 'bg-white rounded-xl p-4 shadow';
+                    doneEmpty.innerHTML = '<p class="text-slate-600 text-sm">完了した習慣はありません。</p>';
+                    doneList.appendChild(doneEmpty);
+                }
+            } else {
+                doneEmpty?.remove();
             }
         }
 
@@ -300,8 +317,6 @@
             } catch (error) {
                 console.error('Toggle failed:', error);
             }
-
-            updateEmptyStates();
         });
     </script>
 
