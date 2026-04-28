@@ -93,7 +93,7 @@ class DashboardController extends Controller
 
         // 1件達成あたりのXP
         // → マジックナンバー化を避けるため変数化している
-        $xpPerDone = 10;
+        $xpPerDone = config('const.xp.per_done');
 
         // ユーザーの累計XPを取得
         $totalXp = (int) ($user->xp ?? 0);

@@ -52,7 +52,7 @@ class HabitLogController extends Controller
                 $existingLog->delete();
 
                 // XPを減算（最低0で止めるガード付き）
-                $user->xp = max(0, $beforeXp - 10);
+                $user->xp = max(0, $user->xp - $xpPerDone);
                 $user->save();
 
                 // 最新状態を再取得（DBとの同期）
@@ -85,7 +85,7 @@ class HabitLogController extends Controller
                 return response()->json([
                     'done' => false, // 未達成状態に戻る
                     'message' => '今日の記録を取り消しました。',
-                    'xp_delta' => -10, // XP変化量
+                    'xp_delta' => $xpPerDone, // XP変化量
                     'level_up' => null, // レベル変動なし
                     'today_completed_count' => $todayCompletedCount,
                     'total_xp' => $afterXp,
@@ -113,7 +113,7 @@ class HabitLogController extends Controller
             $beforeLevel = $user->calcLevel($beforeXp);
 
             // XPを+10（DB側で安全に加算）
-            $user->increment('xp', 10);
+            $user->increment('xp', $xpPerDone);
 
             // 最新状態を取得
             $user->refresh();
@@ -145,7 +145,7 @@ class HabitLogController extends Controller
             return response()->json([
                 'done' => true, // 達成状態
                 'message' => '今日の記録を追加しました!。',
-                'xp_delta' => 10,
+                'xp_delta' => $xpPerDone,
                 'level_up' => $levelUpPayload,
                 'today_completed_count' => $todayCompletedCount,
                 'total_xp' => $afterXp,

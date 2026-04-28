@@ -19,6 +19,7 @@ class TitleController extends Controller
         // date(date) で日時ではなく「日単位」に正規化し、
         // 1日に複数ログがあっても1日として扱う
         $activeDates = HabitLog::query()
+            ->whereHas('habit', fn($query) => $query->where('user_id', auth()->id()))
             ->selectRaw("date(date) as d")
             ->distinct()
             ->pluck('d')

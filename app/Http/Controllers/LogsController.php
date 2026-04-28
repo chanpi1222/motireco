@@ -79,6 +79,9 @@ class LogsController extends Controller
         // Habitも一緒に読み込んで、View側で習慣名を表示しやすくする
         // → with() により N+1 問題を防ぐ
         $recentLogs = \App\Models\HabitLog::with('habit')
+            ->whereHas('habit', function ($query) {
+                $query->where('user_id', auth()->id());
+            })
             ->latest()
             ->limit(10)
             ->get();

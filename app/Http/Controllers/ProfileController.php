@@ -27,7 +27,7 @@ class ProfileController extends Controller
         $now = Carbon::now();
 
         // 1件達成あたりのXP
-        $xpPerDone = 10;
+        $xpPerDone = config('const.xp.per_done');
 
         // 累計XPを取得
         $totalXp = (int) ($user->xp ?? 0);

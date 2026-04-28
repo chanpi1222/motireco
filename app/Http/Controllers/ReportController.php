@@ -25,7 +25,7 @@ class ReportController extends Controller
 
         // 登録されている習慣の総数を取得
         // → 週間達成率の最大値計算に使用
-        $totalHabits = Habit::count();
+        $totalHabits = Habit::where('user_id', auth()->id())->count();
 
         // レポート対象日数
         $days = 7;
@@ -36,15 +36,17 @@ class ReportController extends Controller
         // 直近7日間の総達成件数を取得
         // → 週間レポートの主要指標として使う
         $weeklyDoneCount = HabitLog::query()
+            ->whereHas('habit', fn($query) => $query->where('user_id', auth()->id()))
             ->whereBetween('date', [
-                $from->startOfDay(),
-                $today->endOfDay(),
+                $from->copy()->startOfDay(),
+                $today->copy()->endOfDay(),
             ])
             ->count();
 
         // 直近7日間の「日ごとの達成件数」を集計
         // → 日別レポート表示に使う
         $dailyRows = HabitLog::query()
+            ->whereHas('habit', fn($query) => $query->where('user_id', auth()->id()))
             ->whereBetween('date', [
                 $from->copy()->startOfDay(),
                 $today->copy()->endOfDay(),
@@ -79,6 +81,7 @@ class ReportController extends Controller
         // 直近7日間の習慣別ランキングを取得
         // 各Habitに weekly_done_count を付与して、達成数の多い順に並べる
         $weeklyRanking = Habit::query()
+            ->where('user_id', auth()->id())
             ->withCount(['logs as weekly_done_count' => function ($query) use ($from, $to) {
                 $query->whereBetween('date', [
                     $from->copy()->startOfDay(),
