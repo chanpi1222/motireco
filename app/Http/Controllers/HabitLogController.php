@@ -87,7 +87,7 @@ class HabitLogController extends Controller
                 return response()->json([
                     'done' => false, // 未達成状態に戻る
                     'message' => '今日の記録を取り消しました。',
-                    'xp_delta' => $xpPerDone, // XP変化量
+                    'xp_delta' => -$xpPerDone, // XP変化量
                     'level_up' => null, // レベル変動なし
                     'today_completed_count' => $todayCompletedCount,
                     'total_xp' => $afterXp,
