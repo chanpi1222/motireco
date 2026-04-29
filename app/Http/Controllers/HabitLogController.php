@@ -18,9 +18,11 @@ class HabitLogController extends Controller
         // → 日単位での記録管理の基準となる
         $today = Carbon::today();
 
+        $xpPerDone = config('const.xp.per_done');
+
         // 一連の処理（ログ操作 + XP更新）をトランザクションでまとめる
         // → 途中で失敗した場合にデータ不整合を防ぐ
-        return DB::transaction(function () use ($habit, $today) {
+        return DB::transaction(function () use ($habit, $today, $xpPerDone) {
 
             // ログインユーザーを取得
             $user = auth()->user();
